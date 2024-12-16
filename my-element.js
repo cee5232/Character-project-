@@ -31,9 +31,11 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
       name: "",
       fire: false,
       walking: false,
+      circle: false,
     };
-    this._applySeedToSettings(); // Ensure consistent character style on initialization
+    this._applySeedToSettings();
   }
+
 
   static get properties() {
     return {
@@ -46,10 +48,13 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
     return [
       super.styles,
       css`
+        /* General Host Style */
         :host {
           display: block;
           font-family: var(--ddd-font-navigation);
         }
+  
+        /* Container Layout */
         .container {
           display: flex;
           flex-wrap: wrap;
@@ -58,17 +63,22 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
           align-items: flex-start;
           padding: 20px;
         }
+  
+        /* Character Preview */
         .character-preview {
           flex: 1;
           min-width: 300px;
           text-align: center;
           position: relative;
         }
+  
         .character-preview rpg-character {
           height: var(--character-size, 200px);
           width: var(--character-size, 200px);
           transition: height 0.3s ease, width 0.3s ease;
         }
+  
+        /* Seed Display */
         .seed-display {
           position: absolute;
           top: -50px;
@@ -82,11 +92,15 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
           font-weight: bold;
           pointer-events: none;
         }
+  
+        /* Controls Section */
         .controls {
           flex: 1;
           min-width: 300px;
           text-align: left;
         }
+  
+        /* Wired Elements */
         wired-input,
         wired-checkbox,
         wired-slider {
@@ -94,31 +108,81 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
           margin-bottom: 15px;
           max-width: 300px;
         }
+  
+        /* Wired Slider Customization */
+        wired-slider {
+          --wired-slider-knob-color: #b84969;
+          --wired-slider-bar-color: #ffffff;
+          --wired-slider-knob-size: 25px;
+        }
+  
+        /* For Webkit Browsers (Chrome, Safari) */
+        wired-slider input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 25px;
+          height: 25px;
+          background: #b84969;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 2px solid #cf93e5;
+        }
+  
+        wired-slider input[type="range"]::-webkit-slider-runnable-track {
+          background: #444;
+          height: 8px;
+          border-radius: 5px;
+        }
+  
+        /* For Firefox */
+        wired-slider input[type="range"]::-moz-range-thumb {
+          width: 25px;
+          height: 25px;
+          background: #b84969;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 2px solid #cf93e5;
+        }
+  
+        wired-slider input[type="range"]::-moz-range-track {
+          background: #444;
+          height: 8px;
+          border-radius: 5px;
+        }
+  
+        /* Labels */
         label {
           display: block;
           font-size: 14px;
           font-weight: bold;
           margin-bottom: 5px;
         }
+  
+        /* Buttons */
         button {
           margin-top: 10px;
           padding: 10px 20px;
           cursor: pointer;
-          background-color: #007bff;
+          background-color: #b84969;
           color: white;
-          border: 1px solid #0056b3;
+          border: 4px solid #780f2d;
           border-radius: 4px;
           font-size: 16px;
           transition: background-color 0.3s ease, border-color 0.3s ease;
         }
+  
         button:hover {
-          background-color: #0056b3;
-          border-color: #004085;
+          background-color: #3a693b;
+          border-color: #b84969;
         }
+  
+        /* Character Name */
         .character-name {
           font-size: 1.5rem;
           margin-bottom: 10px;
         }
+  
+        /* Notifications */
         .notification {
           position: fixed;
           bottom: 20px;
@@ -133,8 +197,13 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
           transition: opacity 0.5s ease-in-out;
           z-index: 1000;
         }
+  
         .notification.show {
           opacity: 1;
+        }
+  
+        .hidden {
+          display: none;
         }
       `,
     ];
@@ -157,6 +226,8 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
             hatColor="${this.characterSettings.hatColor}"
             .fire="${this.characterSettings.fire}"
             .walking="${this.characterSettings.walking}"
+            .circle="${this.characterSettings.circle}"
+            leg="0"
             style="
               --character-size: ${this.characterSettings.size}px;
               --hat-color: hsl(${this.characterSettings.hatColor}, 100%, 50%);
@@ -171,15 +242,6 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
             placeholder="Enter character name"
             @input="${(e) => this._updateSetting('name', e.target.value)}"
           ></wired-input>
-
-          <label for="hairToggle">Hair:</label>
-          <wired-checkbox
-            id="hairToggle"
-            ?checked="${this.characterSettings.base === 1}"
-            @change="${(e) =>
-              this._updateSetting('base', e.target.checked ? 1 : 0)}"
-            >Has Hair</wired-checkbox
-          >
 
           <label for="size">Character Size:</label>
           <wired-slider
@@ -208,6 +270,15 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
             @change="${(e) => this._updateSetting('faceitem', parseInt(e.detail.value))}"
           ></wired-slider>
 
+          <label for="hairToggle">Hair:</label>
+          <wired-checkbox
+            id="hairToggle"
+            ?checked="${this.characterSettings.base === 1}"
+            @change="${(e) =>
+              this._updateSetting('base', e.target.checked ? 1 : 0)}"
+            >Has Hair</wired-checkbox
+          >
+          
           <label for="hair">Hair Style:</label>
           <wired-slider
             id="hair"
@@ -244,9 +315,6 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
             @change="${(e) => this._updateSetting('skin', parseInt(e.detail.value))}"
           ></wired-slider>
 
-          
-        
-
           <label for="hatColor">Hat Color:</label>
           <wired-slider
             id="hatColor"
@@ -255,6 +323,19 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
             max="9"
             @change="${(e) => this._updateSetting('hatColor', parseInt(e.detail.value))}"
           ></wired-slider>
+
+          <label for="leg">Leg (Fixed to 0):</label>
+        <wired-input
+          id="leg"
+          value="0"
+          disabled
+          class="hidden"
+        ></wired-input>
+
+        <wired-checkbox
+          ?checked="${this.characterSettings.circle}"
+          @change="${(e) => this._updateSetting('circle', e.target.checked)}"
+        >Circle Around Character</wired-checkbox>
 
           <wired-checkbox
             ?checked="${this.characterSettings.fire}"
