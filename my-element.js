@@ -216,6 +216,7 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
           <div class="seed-display">Seed: ${this.characterSettings.seed}</div>
           <div class="character-name">${this.characterSettings.name}</div>
           <rpg-character
+            seed="${this.characterSettings.seed}"
             base="${this.characterSettings.base}"
             face="${this.characterSettings.face}"
             faceitem="${this.characterSettings.faceitem}"
@@ -360,6 +361,8 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
     const seed = this.characterSettings.seed;
     const paddedSeed = seed.padStart(8, "0").slice(0, 8);
     const values = paddedSeed.split("").map((v) => parseInt(v, 10));
+
+    console.log("Applying seed values:", values);
   
     [
       this.characterSettings.base,
@@ -378,23 +381,33 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
 
   _generateSeed() {
     const { base, face, faceitem, hair, pants, shirt, skin, hatColor } = this.characterSettings;
-    this.characterSettings.seed = `${base}${face}${faceitem}${hair}${pants}${shirt}${skin}${hatColor}`;
+    this.characterSettings.seed = `${base}${face}${faceitem}${hair}${pants}${shirt}${skin}${hatColor}${fire ? 1 : 0}${walking ? 1 : 0}`;
   }
 
   _updateSetting(key, value) {
     this.characterSettings = { ...this.characterSettings, [key]: value };
     this._generateSeed();
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("seed", this.characterSettings.seed);
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, "", newUrl);
     this.requestUpdate();
   }
 
   _generateShareLink() {
     const baseUrl = window.location.href.split("?")[0];
-    const params = new URLSearchParams({ seed: this.characterSettings.seed }).toString();
+    const params = new URLSearchParams({
+      seed: this.characterSettings.seed,
+      hat: this.characterSettings.hatColor ? "random" : "none",
+      fire: this.characterSettings.fire ? "true" : "false",
+    }).toString();
+  
     const shareLink = `${baseUrl}?${params}`;
   
     navigator.clipboard.writeText(shareLink).then(
-      () => this._showNotification("Link copied!"),
-      (err) => this._showNotification(`Error: ${err}`)
+      () => this._showNotification(`Link copied: ${shareLink}`),
+      (err) => this._showNotification(`Error copying link: ${err}`)
     );
   }
 
@@ -409,16 +422,21 @@ export class RpgNew extends DDDSuper(I18NMixin(LitElement)) {
   }
 
   connectedCallback() {
-  super.connectedCallback();
-  const params = new URLSearchParams(window.location.search);
-
-  if (params.has("seed")) {
-    this.characterSettings.seed = params.get("seed");
-    this._applySeedToSettings(); // Apply the seed to settings
-  }
+    super.connectedCallback();
+    const params = new URLSearchParams(window.location.search);
   
-  this.requestUpdate();
-}
+    if (params.has("seed")) {
+      const seed = params.get("seed");
+      if (seed && seed.length === 10 && /^\d+$/.test(seed)) {
+        this.characterSettings.seed = seed;
+        this._applySeedToSettings();
+      } else {
+        console.warn("Invalid seed provided in the URL. Falling back to default seed.");
+      }
+    }
+  
+    this.requestUpdate();
+  }
 }
 
 customElements.define(RpgNew.tag, RpgNew);
